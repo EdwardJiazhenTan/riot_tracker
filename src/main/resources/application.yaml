@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: riot tracker
+
+# Riot API Configuration
+riot:
+  api:
+    key:  RGAPI-8fe1d261-1022-4303-b970-c1a70178e165
