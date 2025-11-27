@@ -44,6 +44,49 @@ public class GameReportComparisonService {
             MatchData latestMatch = matchService.getLatestMatchByPuuid(puuid);
             GameAnalysis analysis = gameAnalysisService.analyzeMatch(latestMatch, puuid);
 
+            return compareGameReportsByAnalysis(analysis, gameName, tagLine, anthropicModel, openaiModel);
+
+        } catch (Exception e) {
+            log.error("Error comparing game reports for {}#{}", gameName, tagLine, e);
+            throw new RuntimeException("Failed to compare game reports: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Generate game reports using multiple AI providers and compare them by match ID
+     */
+    public List<GameReportComparison> compareGameReportsByMatchId(String matchId,
+                                                                   String anthropicModel,
+                                                                   String openaiModel) {
+        try {
+            log.info("Starting game report comparison for match ID: {}", matchId);
+
+            // Get match data by ID
+            MatchData matchData = matchService.getMatchById(matchId);
+
+            // We need to determine which participant to analyze
+            // For now, we'll analyze the first participant, but you might want to make this configurable
+            String puuid = matchData.getInfo().getParticipants().get(0).getPuuid();
+
+            GameAnalysis analysis = gameAnalysisService.analyzeMatch(matchData, puuid);
+
+            return compareGameReportsByAnalysis(analysis, null, null, anthropicModel, openaiModel);
+
+        } catch (Exception e) {
+            log.error("Error comparing game reports for match ID: {}", matchId, e);
+            throw new RuntimeException("Failed to compare game reports: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Internal method to perform the actual comparison based on GameAnalysis
+     */
+    private List<GameReportComparison> compareGameReportsByAnalysis(GameAnalysis analysis,
+                                                                     String gameName,
+                                                                     String tagLine,
+                                                                     String anthropicModel,
+                                                                     String openaiModel) {
+        try {
             // Build the prompt for AI providers
             String prompt = buildGameAnalysisPrompt(analysis);
 
@@ -77,7 +120,7 @@ public class GameReportComparisonService {
             return comparisons;
 
         } catch (Exception e) {
-            log.error("Error comparing game reports for {}#{}", gameName, tagLine, e);
+            log.error("Error in game report comparison", e);
             throw new RuntimeException("Failed to compare game reports: " + e.getMessage(), e);
         }
     }

@@ -10,6 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/game-tracker")
+@CrossOrigin(origins = "*")
 public class GameTrackerController {
 
   private final GameTrackerService gameTrackerService;
@@ -71,6 +72,28 @@ public class GameTrackerController {
     try {
       List<GameReportComparison> comparisons = comparisonService.compareGameReports(
         gameName, tagLine, anthropicModel, openaiModel
+      );
+      return ResponseEntity.ok(comparisons);
+    } catch (Exception e) {
+      e.printStackTrace();
+      return ResponseEntity.status(500).build();
+    }
+  }
+
+  /**
+   * Compare different AI providers for generating game reports by match ID
+   * GET /api/game-tracker/compare-by-match?matchId=MATCH_ID&anthropicModel=MODEL&openaiModel=MODEL
+   * Returns JSON with speed, token usage, and reports for each model
+   */
+  @GetMapping("/compare-by-match")
+  public ResponseEntity<List<GameReportComparison>> compareGameReportsByMatchId(
+    @RequestParam String matchId,
+    @RequestParam(required = false, defaultValue = "claude-sonnet-4-20250514") String anthropicModel,
+    @RequestParam(required = false, defaultValue = "gpt-4o") String openaiModel
+  ) {
+    try {
+      List<GameReportComparison> comparisons = comparisonService.compareGameReportsByMatchId(
+        matchId, anthropicModel, openaiModel
       );
       return ResponseEntity.ok(comparisons);
     } catch (Exception e) {

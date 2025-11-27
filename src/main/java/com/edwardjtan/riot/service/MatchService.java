@@ -40,6 +40,17 @@ public class MatchService {
       String matchId = matchIds[0];
       log.info("Found latest match ID: {}", matchId);
 
+      return getMatchById(matchId);
+    } catch (Exception e) {
+      log.error("Error fetching latest match for PUUID: {}", puuid, e);
+      throw new RuntimeException("Failed to fetch latest match for PUUID: " + puuid, e);
+    }
+  }
+
+  public MatchData getMatchById(String matchId) {
+    try {
+      log.info("Fetching match data for match ID: {}", matchId);
+
       // Get full match data using Riot API v5 directly
       String matchUrl = String.format(
         "https://americas.api.riotgames.com/lol/match/v5/matches/%s?api_key=%s",
@@ -55,8 +66,8 @@ public class MatchService {
       log.info("Successfully fetched match data");
       return matchData;
     } catch (Exception e) {
-      log.error("Error fetching latest match for PUUID: {}", puuid, e);
-      throw new RuntimeException("Failed to fetch latest match for PUUID: " + puuid, e);
+      log.error("Error fetching match by ID: {}", matchId, e);
+      throw new RuntimeException("Failed to fetch match by ID: " + matchId, e);
     }
   }
 
