@@ -16,9 +16,9 @@ class SummonerController {
     this.summonerService = summonerService;
   }
 
-  @GetMapping("/{name}")
-  String getSummoner(@PathVariable String name) {
-    return summonerService.getSummonerInfo(name);
+  @GetMapping("/{name}/{tag}")
+  String getSummoner(@PathVariable String name, @PathVariable String tag) {
+    return summonerService.getSummonerInfoByNameAndTag(name, tag);
   }
 
 }

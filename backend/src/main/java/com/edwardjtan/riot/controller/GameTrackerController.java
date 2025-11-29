@@ -58,6 +58,24 @@ public class GameTrackerController {
     }
   }
 
+  @GetMapping("/report-by-match")
+  public ResponseEntity<String> getGameReportByMatch(
+    @RequestParam String matchId,
+    @RequestParam String puuid
+  ) {
+    try {
+      String report = gameTrackerService.generateGameReportByMatchId(matchId, puuid);
+      return ResponseEntity.ok(report);
+    } catch (Exception e) {
+      String errorDetails = "Error: " + e.getMessage();
+      if (e.getCause() != null) {
+        errorDetails += "\nCause: " + e.getCause().getMessage();
+      }
+      e.printStackTrace();
+      return ResponseEntity.status(500).body(errorDetails);
+    }
+  }
+
   /**
    * Compare different AI providers for generating game reports
    * GET /api/game-tracker/compare?gameName=NAME&tagLine=TAG&anthropicModel=MODEL&openaiModel=MODEL

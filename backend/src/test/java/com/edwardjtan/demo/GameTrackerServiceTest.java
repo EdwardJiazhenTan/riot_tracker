@@ -1,5 +1,6 @@
 package com.edwardjtan.demo;
 
+import com.edwardjtan.riot.RiotTrackerApplication;
 import com.edwardjtan.riot.service.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(classes = RiotTrackerApplication.class)
 public class GameTrackerServiceTest {
 
   private static final Logger log = LoggerFactory.getLogger(GameTrackerServiceTest.class);

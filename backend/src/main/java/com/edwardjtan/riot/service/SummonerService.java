@@ -78,4 +78,12 @@ public class SummonerService {
            ", ID: " + summoner.getId();
   }
 
+  public String getSummonerInfoByNameAndTag(String gameName, String tagLine) {
+    var summoner = getSummonerByNameAndTag(gameName, tagLine);
+    return "Summoner: " + summoner.getName() +
+           ", Level: " + summoner.getLevel() +
+           ", ID: " + summoner.getId() +
+           ", PUUID: " + summoner.getPuuid();
+  }
+
 }

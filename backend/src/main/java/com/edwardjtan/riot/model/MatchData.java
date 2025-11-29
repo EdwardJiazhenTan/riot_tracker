@@ -36,11 +36,18 @@ public class MatchData {
     @JsonProperty("gameDuration")
     private long gameDuration;
 
+    @JsonProperty("gameCreation")
+    private long gameCreation;
+
     @JsonProperty("participants")
     private List<ParticipantDto> participants;
 
     public long getGameDuration() {
       return gameDuration;
+    }
+
+    public long getGameCreation() {
+      return gameCreation;
     }
 
     public List<ParticipantDto> getParticipants() {
@@ -104,6 +111,18 @@ public class MatchData {
     @JsonProperty("riotIdTagline")
     private String riotIdTagline;
 
+    @JsonProperty("summoner1Id")
+    private int summoner1Id;
+
+    @JsonProperty("summoner2Id")
+    private int summoner2Id;
+
+    @JsonProperty("summoner1Castss")
+    private int summoner1Casts;
+
+    @JsonProperty("summoner2Casts")
+    private int summoner2Casts;
+
     // Getters
     public String getPuuid() { return puuid; }
     public String getChampionName() { return championName; }
@@ -123,5 +142,9 @@ public class MatchData {
     public String getSummonerName() { return summonerName; }
     public String getRiotIdGameName() { return riotIdGameName; }
     public String getRiotIdTagline() { return riotIdTagline; }
+    public int getSummoner1Id() { return summoner1Id; }
+    public int getSummoner2Id() { return summoner2Id; }
+    public int getSummoner1Casts() { return summoner1Casts; }
+    public int getSummoner2Casts() { return summoner2Casts; }
   }
 }

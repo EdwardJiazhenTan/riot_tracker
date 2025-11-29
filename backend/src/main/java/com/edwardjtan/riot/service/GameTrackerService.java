@@ -51,4 +51,26 @@ public class GameTrackerService {
       throw new RuntimeException("Failed to generate game report: " + e.getMessage(), e);
     }
   }
+
+  public String generateGameReportByMatchId(String matchId, String puuid) {
+    try {
+      log.info("Starting game report generation for match ID: {}", matchId);
+
+      // Get match data by match ID
+      MatchData matchData = matchService.getMatchById(matchId);
+      log.info("Retrieved match data for: {}", matchId);
+
+      // Analyze match using PUUID
+      GameAnalysis analysis = gameAnalysisService.analyzeMatch(matchData, puuid);
+      log.info("Completed match analysis");
+
+      String report = claudeService.generateGameReport(analysis);
+      log.info("Generated game report successfully");
+
+      return report;
+    } catch (Exception e) {
+      log.error("Error generating game report for match ID: {}", matchId, e);
+      throw new RuntimeException("Failed to generate game report for match: " + e.getMessage(), e);
+    }
+  }
 }
