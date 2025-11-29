@@ -1,0 +1,50 @@
+import React, { useEffect, useState } from 'react';
+
+export function AiServiceTest() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [userStats, setUserStats] = useState('');
+  const [summonerName, setSummonerName] = useState('');
+  const [summonerTag, setSummonerTag] = useState('');
+
+  async function handleSubit() {
+    setLoading(true);
+    // fetch reports from backend api
+    try {
+      const response = await fetch(`http://localhost:8080/api/${summonerName}/${summonerTag}`);
+      if (!response.ok) {
+        setError('error when fetching summoner datas');
+        return;
+      }
+      const userData = response.text.toString;
+      setUserStats(userData);
+    } catch (error) {
+      setError('failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+
+  return (
+    <div>
+      <input
+        type="text"
+        placeholder="summoner name"
+        value={summonerName}
+        onChange={(e) => setSummonerName(e.target.value)}
+      />
+
+      <input
+        type="text"
+        placeholder="summoner Tag"
+        value={summonerTag}
+        onChange={(e) => setSummonerTag(e.target.value)}
+      />
+
+      <button>
+        submit
+      </button>
+    </div>
+  );
+}
