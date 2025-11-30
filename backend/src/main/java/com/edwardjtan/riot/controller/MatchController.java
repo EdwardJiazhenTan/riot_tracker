@@ -2,6 +2,7 @@ package com.edwardjtan.riot.controller;
 
 import com.edwardjtan.riot.model.MatchDetails;
 import com.edwardjtan.riot.model.MatchSummary;
+import com.edwardjtan.riot.model.RadarChartStats;
 import com.edwardjtan.riot.service.MatchService;
 import com.edwardjtan.riot.service.SummonerService;
 import org.springframework.http.ResponseEntity;
@@ -58,6 +59,24 @@ public class MatchController {
     try {
       MatchDetails details = matchService.getMatchDetails(matchId, puuid);
       return ResponseEntity.ok(details);
+    } catch (Exception e) {
+      e.printStackTrace();
+      return ResponseEntity.status(500).build();
+    }
+  }
+
+  /**
+   * Get radar chart comparison stats for a match
+   * GET /api/match/{matchId}/radar?puuid=PUUID
+   */
+  @GetMapping("/match/{matchId}/radar")
+  public ResponseEntity<RadarChartStats> getRadarChartStats(
+    @PathVariable String matchId,
+    @RequestParam String puuid
+  ) {
+    try {
+      RadarChartStats radarStats = matchService.getRadarChartStats(matchId, puuid);
+      return ResponseEntity.ok(radarStats);
     } catch (Exception e) {
       e.printStackTrace();
       return ResponseEntity.status(500).build();

@@ -123,6 +123,18 @@ public class MatchData {
     @JsonProperty("summoner2Casts")
     private int summoner2Casts;
 
+    @JsonProperty("totalDamageDealtToChampions")
+    private int totalDamageDealtToChampions;
+
+    @JsonProperty("totalDamageTaken")
+    private int totalDamageTaken;
+
+    @JsonProperty("wardsPlaced")
+    private int wardsPlaced;
+
+    @JsonProperty("wardsKilled")
+    private int wardsKilled;
+
     // Getters
     public String getPuuid() { return puuid; }
     public String getChampionName() { return championName; }
@@ -146,5 +158,9 @@ public class MatchData {
     public int getSummoner2Id() { return summoner2Id; }
     public int getSummoner1Casts() { return summoner1Casts; }
     public int getSummoner2Casts() { return summoner2Casts; }
+    public int getTotalDamageDealtToChampions() { return totalDamageDealtToChampions; }
+    public int getTotalDamageTaken() { return totalDamageTaken; }
+    public int getWardsPlaced() { return wardsPlaced; }
+    public int getWardsKilled() { return wardsKilled; }
   }
 }
