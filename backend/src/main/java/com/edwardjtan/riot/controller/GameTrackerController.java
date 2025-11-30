@@ -84,8 +84,8 @@ public class GameTrackerController {
   public ResponseEntity<List<GameReportComparison>> compareGameReports(
     @RequestParam String gameName,
     @RequestParam String tagLine,
-    @RequestParam(required = false, defaultValue = "claude-sonnet-4-20250514") String anthropicModel,
-    @RequestParam(required = false, defaultValue = "gpt-4o") String openaiModel
+    @RequestParam(required = false, defaultValue = "claude-3-5-haiku-20241022") String anthropicModel,
+    @RequestParam(required = false, defaultValue = "gpt-4o-mini") String openaiModel
   ) {
     try {
       List<GameReportComparison> comparisons = comparisonService.compareGameReports(
@@ -100,18 +100,19 @@ public class GameTrackerController {
 
   /**
    * Compare different AI providers for generating game reports by match ID
-   * GET /api/game-tracker/compare-by-match?matchId=MATCH_ID&anthropicModel=MODEL&openaiModel=MODEL
+   * GET /api/game-tracker/compare-by-match?matchId=MATCH_ID&puuid=PUUID&anthropicModel=MODEL&openaiModel=MODEL
    * Returns JSON with speed, token usage, and reports for each model
    */
   @GetMapping("/compare-by-match")
   public ResponseEntity<List<GameReportComparison>> compareGameReportsByMatchId(
     @RequestParam String matchId,
-    @RequestParam(required = false, defaultValue = "claude-sonnet-4-20250514") String anthropicModel,
-    @RequestParam(required = false, defaultValue = "gpt-4o") String openaiModel
+    @RequestParam String puuid,
+    @RequestParam(required = false, defaultValue = "claude-3-5-haiku-20241022") String anthropicModel,
+    @RequestParam(required = false, defaultValue = "gpt-4o-mini") String openaiModel
   ) {
     try {
       List<GameReportComparison> comparisons = comparisonService.compareGameReportsByMatchId(
-        matchId, anthropicModel, openaiModel
+        matchId, puuid, anthropicModel, openaiModel
       );
       return ResponseEntity.ok(comparisons);
     } catch (Exception e) {

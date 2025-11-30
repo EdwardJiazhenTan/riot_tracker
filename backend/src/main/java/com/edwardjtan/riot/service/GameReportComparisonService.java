@@ -56,17 +56,14 @@ public class GameReportComparisonService {
      * Generate game reports using multiple AI providers and compare them by match ID
      */
     public List<GameReportComparison> compareGameReportsByMatchId(String matchId,
+                                                                   String puuid,
                                                                    String anthropicModel,
                                                                    String openaiModel) {
         try {
-            log.info("Starting game report comparison for match ID: {}", matchId);
+            log.info("Starting game report comparison for match ID: {} and PUUID: {}", matchId, puuid);
 
             // Get match data by ID
             MatchData matchData = matchService.getMatchById(matchId);
-
-            // We need to determine which participant to analyze
-            // For now, we'll analyze the first participant, but you might want to make this configurable
-            String puuid = matchData.getInfo().getParticipants().get(0).getPuuid();
 
             GameAnalysis analysis = gameAnalysisService.analyzeMatch(matchData, puuid);
 

@@ -4,6 +4,7 @@ import com.edwardjtan.riot.model.MatchData;
 import com.edwardjtan.riot.model.MatchSummary;
 import com.edwardjtan.riot.model.MatchDetails;
 import com.edwardjtan.riot.model.RadarChartStats;
+import com.edwardjtan.riot.model.PerformanceBenchmarks;
 import com.merakianalytics.orianna.types.core.match.Match;
 import com.merakianalytics.orianna.types.core.match.MatchHistory;
 import com.merakianalytics.orianna.types.core.match.Timeline;
@@ -219,21 +220,26 @@ public class MatchService {
         .findFirst()
         .orElseThrow(() -> new RuntimeException("Player not found in match: " + matchId));
 
-      // Find the opponent in the same lane (opposite team)
-      String playerLane = player.getLane();
+      // Find the opponent in the same position (opposite team)
+      String playerPosition = getBestPosition(player);
       int playerTeam = getTeamId(matchData, puuid);
+
+      log.info("Player position: {}, Team: {}", playerPosition, playerTeam);
 
       MatchData.ParticipantDto opponent = matchData.getInfo().getParticipants()
         .stream()
         .filter(p -> !p.getPuuid().equals(puuid))
-        .filter(p -> p.getLane().equals(playerLane))
         .filter(p -> getTeamId(matchData, p.getPuuid()) != playerTeam)
+        .filter(p -> {
+          String opponentPosition = getBestPosition(p);
+          return opponentPosition.equals(playerPosition);
+        })
         .findFirst()
         .orElse(null);
 
-      // If no opponent found in same lane, find one with most interactions (most deaths from player or most kills on player)
+      // If no opponent found in same position, just get first enemy
       if (opponent == null) {
-        log.warn("No direct lane opponent found, selecting first opponent from enemy team");
+        log.warn("No direct lane opponent found for position {}, selecting first opponent from enemy team", playerPosition);
         opponent = matchData.getInfo().getParticipants()
           .stream()
           .filter(p -> !p.getPuuid().equals(puuid))
@@ -242,11 +248,14 @@ public class MatchService {
           .orElseThrow(() -> new RuntimeException("No opponent found in match"));
       }
 
-      RadarChartStats.PlayerRadarStats playerStats = convertToRadarStats(player);
-      RadarChartStats.PlayerRadarStats opponentStats = convertToRadarStats(opponent);
+      // Get game duration in minutes
+      double gameDurationMinutes = matchData.getInfo().getGameDuration() / 60.0;
 
-      // Normalize stats (scale 0-100 based on the max between player and opponent)
-      normalizeRadarStats(playerStats, opponentStats);
+      RadarChartStats.PlayerRadarStats playerStats = convertToRadarStats(player, gameDurationMinutes, playerPosition);
+      RadarChartStats.PlayerRadarStats opponentStats = convertToRadarStats(opponent, gameDurationMinutes, getBestPosition(opponent));
+
+      // Normalize stats based on rank/role benchmarks
+      normalizeRadarStatsWithBenchmarks(playerStats, opponentStats);
 
       RadarChartStats radarStats = new RadarChartStats(matchId, playerStats, opponentStats);
 
@@ -258,13 +267,13 @@ public class MatchService {
     }
   }
 
-  private RadarChartStats.PlayerRadarStats convertToRadarStats(MatchData.ParticipantDto participant) {
+  private RadarChartStats.PlayerRadarStats convertToRadarStats(MatchData.ParticipantDto participant, double gameDurationMinutes, String position) {
     RadarChartStats.PlayerRadarStats stats = new RadarChartStats.PlayerRadarStats();
 
     stats.setPuuid(participant.getPuuid());
     stats.setSummonerName(participant.getRiotIdGameName() + "#" + participant.getRiotIdTagline());
     stats.setChampionName(participant.getChampionName());
-    stats.setLane(participant.getLane());
+    stats.setLane(position); // Use the resolved position instead of just lane
     stats.setWin(participant.isWin());
 
     // Raw values
@@ -286,62 +295,92 @@ public class MatchService {
       : (double) (participant.getKills() + participant.getAssists()) / participant.getDeaths();
     stats.setKda(kda);
 
-    // Initial values (will be normalized later)
-    stats.setDamage(participant.getTotalDamageDealtToChampions());
-    stats.setDamageTaken(participant.getTotalDamageTaken());
-    stats.setFarm(participant.getTotalMinionsKilled() + participant.getNeutralMinionsKilled());
-    stats.setGold(participant.getGoldEarned());
-    stats.setVision(participant.getVisionScore());
+    // Calculate per-minute stats (will be normalized later against benchmarks)
+    if (gameDurationMinutes > 0) {
+      stats.setDamage(participant.getTotalDamageDealtToChampions() / gameDurationMinutes);
+      stats.setDamageTaken(participant.getTotalDamageTaken() / gameDurationMinutes);
+      stats.setFarm((participant.getTotalMinionsKilled() + participant.getNeutralMinionsKilled()) / gameDurationMinutes);
+      stats.setGold(participant.getGoldEarned() / gameDurationMinutes);
+      stats.setVision(participant.getWardsPlaced() / gameDurationMinutes); // Use wards/min for vision
+    }
 
     return stats;
   }
 
-  private void normalizeRadarStats(RadarChartStats.PlayerRadarStats player, RadarChartStats.PlayerRadarStats opponent) {
-    // Normalize each stat to 0-100 scale based on max value between player and opponent
+  private void normalizeRadarStatsWithBenchmarks(RadarChartStats.PlayerRadarStats player, RadarChartStats.PlayerRadarStats opponent) {
+    // Normalize stats to 0-100 scale based on rank/role benchmarks
+    // 100 = at benchmark, 200 = 2x benchmark, 50 = 0.5x benchmark
 
-    // Damage dealt
-    double maxDamage = Math.max(player.getTotalDamageDealtToChampions(), opponent.getTotalDamageDealtToChampions());
-    if (maxDamage > 0) {
-      player.setDamage((player.getTotalDamageDealtToChampions() / maxDamage) * 100);
-      opponent.setDamage((opponent.getTotalDamageDealtToChampions() / maxDamage) * 100);
+    // Detect roles
+    PerformanceBenchmarks.Role playerRole = PerformanceBenchmarks.detectRole(player.getLane());
+    PerformanceBenchmarks.Role opponentRole = PerformanceBenchmarks.detectRole(opponent.getLane());
+
+    // Use Gold rank as default (could be enhanced to detect actual rank)
+    PerformanceBenchmarks.Rank rank = PerformanceBenchmarks.getDefaultRank();
+
+    // Get benchmarks
+    PerformanceBenchmarks.Benchmark playerBenchmark = PerformanceBenchmarks.getBenchmark(rank, playerRole);
+    PerformanceBenchmarks.Benchmark opponentBenchmark = PerformanceBenchmarks.getBenchmark(rank, opponentRole);
+
+    // Normalize player stats
+    normalizePlayerStats(player, playerBenchmark);
+    normalizePlayerStats(opponent, opponentBenchmark);
+  }
+
+  private void normalizePlayerStats(RadarChartStats.PlayerRadarStats stats, PerformanceBenchmarks.Benchmark benchmark) {
+    // Normalize each stat: (actual / benchmark) * 100
+    // No cap - let stats overflow if they're exceptional
+
+    if (benchmark.damagePerMin > 0) {
+      stats.setDamage((stats.getDamage() / benchmark.damagePerMin) * 100);
     }
 
-    // Damage taken
-    double maxDamageTaken = Math.max(player.getTotalDamageTaken(), opponent.getTotalDamageTaken());
-    if (maxDamageTaken > 0) {
-      player.setDamageTaken((player.getTotalDamageTaken() / maxDamageTaken) * 100);
-      opponent.setDamageTaken((opponent.getTotalDamageTaken() / maxDamageTaken) * 100);
+    if (benchmark.goldPerMin > 0) {
+      stats.setGold((stats.getGold() / benchmark.goldPerMin) * 100);
     }
 
-    // Farm (CS)
-    double playerFarm = player.getTotalMinionsKilled() + player.getNeutralMinionsKilled();
-    double opponentFarm = opponent.getTotalMinionsKilled() + opponent.getNeutralMinionsKilled();
-    double maxFarm = Math.max(playerFarm, opponentFarm);
-    if (maxFarm > 0) {
-      player.setFarm((playerFarm / maxFarm) * 100);
-      opponent.setFarm((opponentFarm / maxFarm) * 100);
+    if (benchmark.csPerMin > 0) {
+      stats.setFarm((stats.getFarm() / benchmark.csPerMin) * 100);
     }
 
-    // Gold
-    double maxGold = Math.max(player.getGoldEarned(), opponent.getGoldEarned());
-    if (maxGold > 0) {
-      player.setGold((player.getGoldEarned() / maxGold) * 100);
-      opponent.setGold((opponent.getGoldEarned() / maxGold) * 100);
+    if (benchmark.wardsPerMin > 0) {
+      stats.setVision((stats.getVision() / benchmark.wardsPerMin) * 100);
     }
 
-    // Vision
-    double maxVision = Math.max(player.getVisionScore(), opponent.getVisionScore());
-    if (maxVision > 0) {
-      player.setVision((player.getVisionScore() / maxVision) * 100);
-      opponent.setVision((opponent.getVisionScore() / maxVision) * 100);
+    if (benchmark.kda > 0) {
+      stats.setKda((stats.getKda() / benchmark.kda) * 100);
     }
 
-    // KDA
-    double maxKda = Math.max(player.getKda(), opponent.getKda());
-    if (maxKda > 0) {
-      player.setKda((player.getKda() / maxKda) * 100);
-      opponent.setKda((opponent.getKda() / maxKda) * 100);
+    // Damage Taken: normalize similarly (higher damage taken = more frontline presence)
+    double avgDamageTaken = 450; // Rough average across roles
+    stats.setDamageTaken((stats.getDamageTaken() / avgDamageTaken) * 100);
+  }
+
+  /**
+   * Get the best position field from participant data.
+   * Prefers teamPosition > individualPosition > lane
+   */
+  private String getBestPosition(MatchData.ParticipantDto participant) {
+    // Try teamPosition first (most reliable in recent patches)
+    if (participant.getTeamPosition() != null && !participant.getTeamPosition().isEmpty()
+        && !participant.getTeamPosition().equals("Invalid") && !participant.getTeamPosition().equals("NONE")) {
+      return participant.getTeamPosition();
     }
+
+    // Try individualPosition
+    if (participant.getIndividualPosition() != null && !participant.getIndividualPosition().isEmpty()
+        && !participant.getIndividualPosition().equals("Invalid") && !participant.getIndividualPosition().equals("NONE")) {
+      return participant.getIndividualPosition();
+    }
+
+    // Fallback to lane (deprecated but still exists)
+    if (participant.getLane() != null && !participant.getLane().isEmpty()
+        && !participant.getLane().equals("NONE")) {
+      return participant.getLane();
+    }
+
+    // Ultimate fallback
+    return "UNKNOWN";
   }
 
   private int getTeamId(MatchData matchData, String puuid) {

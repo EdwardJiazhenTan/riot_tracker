@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 interface MatchSummary {
   matchId: string;
@@ -15,6 +15,7 @@ interface RecentMatchesProps {
   gameName: string;
   tagLine: string;
   count: number;
+  onMatchClick: (matchId: string, puuid: string) => void;
 }
 
 // Helper function to calculate KDA ratio
@@ -29,18 +30,33 @@ function getChampionAvatarUrl(championName: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/${DD_VERSION}/img/champion/${championName}.png`;
 }
 
-export function RecentMatches({ gameName, tagLine, count }: RecentMatchesProps) {
+export function RecentMatches({ gameName, tagLine, count, onMatchClick }: RecentMatchesProps) {
   const [recentMatches, setRecentMatches] = useState<MatchSummary[]>([]);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [puuid, setPuuid] = useState<string>('');
 
-  // Fetch matches when component mounts or props change
+  // Fetch PUUID and matches when component mounts or props change
   useEffect(() => {
-    async function getRecentMatches() {
+    async function fetchData() {
       try {
         setLoading(true);
         setError('');
 
+        // First, get the PUUID
+        const puuidUrl = `http://localhost:8080/api/summoner/${gameName}/${tagLine}/puuid`;
+        const puuidResponse = await fetch(puuidUrl);
+
+        if (!puuidResponse.ok) {
+          setError('Error fetching player info');
+          return;
+        }
+
+        const puuidData = await puuidResponse.json();
+        const fetchedPuuid = puuidData.puuid;
+        setPuuid(fetchedPuuid);
+
+        // Then fetch matches
         const url = `http://localhost:8080/api/matches?gameName=${gameName}&tagLine=${tagLine}&count=${count}`;
         const response = await fetch(url);
 
@@ -58,7 +74,7 @@ export function RecentMatches({ gameName, tagLine, count }: RecentMatchesProps) 
       }
     }
 
-    getRecentMatches();
+    fetchData();
   }, [gameName, tagLine, count]); // Re-fetch when these change
 
   return (
@@ -97,7 +113,8 @@ export function RecentMatches({ gameName, tagLine, count }: RecentMatchesProps) 
           return (
             <div
               key={match.matchId}
-              className={`flex items-center p-2 border rounded-2xl ${match.win ? " bg-[#d4edda] hover:bg-[#d4edda]/50 active:bg-[#d4edda]/75 " : "bg-[#f8d7da] hover:bg-[#f8d7da]/50 active:bg-[#f8d7da]/75"}`}
+              onClick={() => onMatchClick(match.matchId, puuid)}
+              className={`flex items-center p-2 border rounded-2xl cursor-pointer ${match.win ? " bg-[#d4edda] hover:bg-[#d4edda]/50 active:bg-[#d4edda]/75 " : "bg-[#f8d7da] hover:bg-[#f8d7da]/50 active:bg-[#f8d7da]/75"}`}
             >
               {/* Champion Avatar */}
               <div style={{ marginRight: '16px', flexShrink: 0 }}>

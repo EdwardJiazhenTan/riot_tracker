@@ -1,11 +1,30 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RecentMatches } from '../components/RecentMatches';
 
-export function Home() {
-  const [gameName, setGameName] = useState<string>('');
-  const [tagLine, setTagLine] = useState('');
-  const [count, setCount] = useState('');
-  const [showRecentMatches, setShowRecentMatches] = useState(false);
+interface SearchState {
+  gameName: string;
+  tagLine: string;
+  count: string;
+}
+
+interface HomeProps {
+  onMatchClick: (matchId: string, puuid: string) => void;
+  onSearchStateChange: (state: SearchState) => void;
+  initialSearchState: SearchState;
+}
+
+export function Home({ onMatchClick, onSearchStateChange, initialSearchState }: HomeProps) {
+  const [gameName, setGameName] = useState<string>(initialSearchState.gameName);
+  const [tagLine, setTagLine] = useState(initialSearchState.tagLine);
+  const [count, setCount] = useState(initialSearchState.count);
+  const [showRecentMatches, setShowRecentMatches] = useState(
+    !!(initialSearchState.gameName && initialSearchState.tagLine)
+  );
+
+  // Notify parent of state changes
+  useEffect(() => {
+    onSearchStateChange({ gameName, tagLine, count });
+  }, [gameName, tagLine, count, onSearchStateChange]);
 
   const handleSubmit = () => {
     if (gameName && tagLine) {
@@ -16,33 +35,33 @@ export function Home() {
   return (
     <div className=" m-4 justify-center font-mono">
 
-      <h1 className="items-center text-center text-2xl">
-        Get your recent League stats & reports
+      <h1 className="items-center text-center text-4xl">
+        Get League stats & reports
       </h1>
 
-      <div className="flex flex-col items-center w-full mt-3">
+      <div className="item-center flex justify-center-safe w-full mt-3">
         <input
           type='text'
           placeholder='summoner name'
           value={gameName}
           onChange={(e) => setGameName(e.target.value)}
-          className="border text-left border-black p-1 m-2"
+          className="border border-black rounded-md p-1 m-2 w-50"
         />
 
         <input
           type='text'
-          placeholder='game tagline'
+          placeholder='#tag'
           value={tagLine}
           onChange={(e) => setTagLine(e.target.value)}
-          className="border text-left border-black p-1 m-2"
+          className="border border-black rounded-md p-1 m-2 w-20"
         />
 
         <input
           type='number'
-          placeholder='count of game reports'
+          placeholder='count'
           value={count}
           onChange={(e) => setCount(e.target.value)}
-          className="border text-left border-black p-1 m-2"
+          className="w-20 border rounded-md border-black p-1 m-2"
         />
 
         <button
@@ -58,6 +77,7 @@ export function Home() {
           gameName={gameName}
           tagLine={tagLine}
           count={parseInt(count)}
+          onMatchClick={onMatchClick}
         />
       </div>}
 

@@ -102,6 +102,12 @@ public class MatchData {
     @JsonProperty("lane")
     private String lane;
 
+    @JsonProperty("teamPosition")
+    private String teamPosition;
+
+    @JsonProperty("individualPosition")
+    private String individualPosition;
+
     @JsonProperty("summonerName")
     private String summonerName;
 
@@ -151,6 +157,8 @@ public class MatchData {
     public int getQuadraKills() { return quadraKills; }
     public int getPentaKills() { return pentaKills; }
     public String getLane() { return lane; }
+    public String getTeamPosition() { return teamPosition; }
+    public String getIndividualPosition() { return individualPosition; }
     public String getSummonerName() { return summonerName; }
     public String getRiotIdGameName() { return riotIdGameName; }
     public String getRiotIdTagline() { return riotIdTagline; }
